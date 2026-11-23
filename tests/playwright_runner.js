@@ -347,6 +347,37 @@ async function runPlaywrightSuite() {
   const touchVisible = await page.locator('#touch-controls').isVisible();
   assert(touchVisible, 'Virtual D-pad and Action touch buttons visible on mobile viewport');
 
+  // 14. Multi-Level Progression to World 1-2 Underground Cavern
+  console.log('\nSTAGE 14: Multi-Level Progression to World 1-2 Underground Cavern');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.evaluate(() => {
+    window.__GAME__.player.reset({ x: 152.0, y: 2.5, z: 0 });
+    window.__GAME__.level.goal.reachGoal();
+  });
+  await page.waitForTimeout(300);
+
+  const nextBtnVisible = await page.locator('#btn-victory-next').isVisible();
+  assert(nextBtnVisible, 'Next Level button visible on Victory overlay when subsequent level exists');
+
+  await page.locator('#btn-victory-next').click();
+  await page.waitForTimeout(400);
+
+  const nextLevelState = await page.evaluate(() => ({
+    levelKey: window.__GAME__.gameState.levelKey,
+    world: window.__GAME__.gameState.currentWorld,
+    level: window.__GAME__.gameState.currentLevel,
+    levelName: window.__GAME__.level.currentLevelData?.name,
+    biome: window.__GAME__.level.currentLevelData?.theme?.biome,
+    hudWorldText: document.getElementById('hud-world-val')?.textContent,
+    enemyCount: window.__GAME__.level.enemies.length,
+    blockCount: window.__GAME__.level.blocks.length
+  }));
+
+  assert(nextLevelState.levelKey === '1-2', `Game loaded Level 1-2 (active: ${nextLevelState.levelKey})`);
+  assert(nextLevelState.biome === 'cavern', `Cavern biome active with custom subterranean theme`);
+  assert(nextLevelState.hudWorldText === '1 - 2', `Top HUD updated to display WORLD 1 - 2 (${nextLevelState.hudWorldText})`);
+  assert(nextLevelState.enemyCount > 0, `Underground cavern enemies populated (${nextLevelState.enemyCount} enemies)`);
+
   // Summary
   console.log('\n==================================================================');
   console.log('                 PLAYWRIGHT TEST SUMMARY                          ');

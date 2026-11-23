@@ -14,6 +14,7 @@ import { Level } from '../world/Level.js';
 import { Player } from '../entities/Player.js';
 import { HUD } from '../ui/HUD.js';
 import { MenuManager } from '../ui/Menu.js';
+import { getLevelData, getNextLevelKey } from '../world/levels/index.js';
 
 export class Game {
   constructor() {
@@ -73,9 +74,9 @@ export class Game {
 
   setupLighting() {
     // Ambient / Hemisphere light: sky blue from top, soft meadow bounce from bottom
-    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x81c784, 0.75);
-    hemiLight.position.set(0, 50, 0);
-    this.scene.add(hemiLight);
+    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x81c784, 0.75);
+    this.hemiLight.position.set(0, 50, 0);
+    this.scene.add(this.hemiLight);
 
     // Main warm directional sunlight with shadows
     this.sunLight = new THREE.DirectionalLight(0xfffaed, 1.25);
@@ -98,10 +99,46 @@ export class Game {
     this.scene.add(this.sunLight.target);
   }
 
-  initWorld() {
-    this.level.build();
+  initWorld(levelKey = null) {
+    if (levelKey) {
+      gameState.setLevelKey(levelKey);
+    }
+    const data = getLevelData(gameState.levelKey);
+    this.level.build(data);
+
+    if (data.theme?.ambientLight && this.hemiLight) {
+      this.hemiLight.color.setHex(data.theme.ambientLight.color || 0xffffff);
+      this.hemiLight.groundColor.setHex(data.theme.ambientLight.groundColor || 0x81c784);
+      this.hemiLight.intensity = data.theme.ambientLight.intensity || 0.75;
+    }
+    if (data.theme?.sunLight && this.sunLight) {
+      this.sunLight.color.setHex(data.theme.sunLight.color || 0xfffaed);
+      this.sunLight.intensity = data.theme.sunLight.intensity || 1.25;
+    }
+
+    gameState.defaultSpawn = data.spawn || { x: 2.0, y: 3.5, z: 0 };
+    if (!gameState.reachedCheckpoint) {
+      gameState.checkpoint = { ...gameState.defaultSpawn };
+    }
+
     this.player.reset(gameState.checkpoint);
     this.gameCamera.reset(this.player.pos);
+  }
+
+  loadLevel(levelKey) {
+    gameState.setLevelKey(levelKey);
+    this.initWorld(levelKey);
+    gameState.setState(STATES.PLAYING);
+    this.hud.show();
+  }
+
+  nextLevel() {
+    const nextKey = getNextLevelKey(gameState.levelKey);
+    if (nextKey) {
+      this.loadLevel(nextKey);
+    } else {
+      this.returnToMenu();
+    }
   }
 
   startGame() {
@@ -112,9 +149,7 @@ export class Game {
   }
 
   restartLevel() {
-    this.level.build();
-    this.player.reset(gameState.checkpoint);
-    this.gameCamera.reset(this.player.pos);
+    this.initWorld();
     gameState.time = 300;
     gameState.powerUp.active = false;
     gameState.setState(STATES.PLAYING);

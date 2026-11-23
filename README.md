@@ -14,17 +14,24 @@ A high-quality, fully playable 3D platformer game inspired by classic Super Mari
   - Variable jump height depending on button hold duration.
   - Jump input buffering (140ms) and Coyote time (120ms).
   - Deterministic fixed timestep simulation (60Hz) preventing tunneling or falling through ground.
-- **World 1-1: Sunny Meadows:**
-  - Safe starter area, guiding coin arcs, elevated platforms, and mound challenges.
-  - **Interactive Mystery Blocks:** Bounce up when hit from below, emit particles, play sounds, and dispense coins or Star Dash power-ups.
-  - **Breakable Brick Blocks:** Shatter into 4 tumbling debris chunks when struck from below.
-  - **Moving Platforms:** Horizontally and vertically oscillating platforms that carry the player.
-  - **Original Cartoon Enemies:**
-    - **Walker ("Sproutle"):** Acorn/mushroom patrolling creature that turns at edges and can be stomped from above.
-    - **Hopper ("Bouncy"):** Bunny-eared creature that hops periodically and patrols.
-  - **Star Dash Power-Up:** Grants speed boost (+60%), invulnerability to enemy attacks, and sparkling gold trail particles with a HUD timer meter.
-  - **Mid-level Checkpoint:** Interactive flag pole that turns gold, plays a fanfare, and saves spawn position.
-  - **Victory Goal Arch:** Goal castle arch and flagpole that triggers level complete celebration with confetti and score calculation.
+- **Multi-Level World Progression:**
+  - **World 1-1: Sunny Meadows:**
+    - Safe starter area, guiding coin arcs, elevated platforms, and mound challenges.
+    - **Interactive Mystery Blocks:** Bounce up when hit from below, emit particles, play sounds, and dispense coins or Star Dash power-ups.
+    - **Breakable Brick Blocks:** Shatter into 4 tumbling debris chunks when struck from below.
+    - **Moving Platforms:** Horizontally and vertically oscillating platforms that carry the player.
+    - **Original Cartoon Enemies:**
+      - **Walker ("Sproutle"):** Acorn/mushroom patrolling creature that turns at edges and can be stomped from above.
+      - **Hopper ("Bouncy"):** Bunny-eared creature that hops periodically and patrols.
+    - **Star Dash Power-Up:** Grants speed boost (+60%), invulnerability to enemy attacks, and sparkling gold trail particles with a HUD timer meter.
+    - **Mid-level Checkpoint:** Interactive flag pole that turns gold, plays a fanfare, and saves spawn position.
+    - **Victory Goal Arch:** Goal castle arch and flagpole that triggers level complete celebration with confetti and score calculation.
+  - **World 1-2: Underground Cavern:**
+    - Subterranean cavern biome with deep midnight atmosphere, hanging stalactites, and luminescent crystals.
+    - Cool slate stone and deep bedrock platforms with tighter ceiling clearances and vertical chasm elevators.
+    - Ambushing hopper enemies, hidden star dash power-up, and checkpoint before the final cavern ascent.
+  - **Victory Progression:**
+    - Dynamic "NEXT LEVEL 🚀" action seamlessly advances the player to the next stage with HUD level counter updates (`1 - 1`, `1 - 2`).
 - **Arcade HUD & Menus:**
   - Main Menu, Controls Modal, Pause Menu, Victory Screen, and Game Over Screen.
   - Real-time HUD showing lives, coins, world, score, countdown timer, and power-up meter.

@@ -1,0 +1,20 @@
+{
+  "url": "http://127.0.0.1:5188",
+  "mode": "desktop",
+  "state": null,
+  "requestedState": null,
+  "appliedState": null,
+  "runId": null,
+  "seed": null,
+  "screenshotPath": null,
+  "gpu": null,
+  "result": {
+    "ok": false,
+    "reason": "capture-failed",
+    "error": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5188/\nCall log:\n  - navigating to \"http://127.0.0.1:5188/\", waiting until \"load\"\n"
+  },
+  "consoleErrors": [],
+  "pageErrors": [],
+  "consoleErrorCount": 0,
+  "pageErrorCount": 0
+}

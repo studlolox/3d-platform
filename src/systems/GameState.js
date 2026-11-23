@@ -18,6 +18,11 @@ export class GameStateManager {
     this.currentState = STATES.MENU;
     this.previousState = STATES.MENU;
 
+    // World & Level progression
+    this.currentWorld = 1;
+    this.currentLevel = 1;
+    this.levelKey = '1-1';
+
     // Player stats
     this.initialLives = 3;
     this.lives = this.initialLives;
@@ -51,6 +56,9 @@ export class GameStateManager {
   notify() {
     const data = {
       state: this.currentState,
+      world: this.currentWorld,
+      level: this.currentLevel,
+      levelKey: this.levelKey,
       lives: this.lives,
       score: this.score,
       coins: this.coins,
@@ -70,6 +78,25 @@ export class GameStateManager {
     this.notify();
   }
 
+  setLevel(world, level) {
+    this.currentWorld = world;
+    this.currentLevel = level;
+    this.levelKey = `${world}-${level}`;
+    this.resetLevel();
+    this.notify();
+  }
+
+  setLevelKey(key) {
+    const parts = key.split('-');
+    if (parts.length === 2) {
+      this.currentWorld = parseInt(parts[0], 10) || 1;
+      this.currentLevel = parseInt(parts[1], 10) || 1;
+    }
+    this.levelKey = key;
+    this.resetLevel();
+    this.notify();
+  }
+
   resetLevel() {
     this.time = 300;
     this.powerUp.active = false;
@@ -80,6 +107,9 @@ export class GameStateManager {
   }
 
   resetAll() {
+    this.currentWorld = 1;
+    this.currentLevel = 1;
+    this.levelKey = '1-1';
     this.lives = this.initialLives;
     this.score = 0;
     this.coins = 0;

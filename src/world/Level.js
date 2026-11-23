@@ -1,8 +1,8 @@
 /**
  * Level.js
- * Builds the complete "World 1-1: Sunny Meadows" level,
- * including terrain platforms, interactive blocks, collectibles, enemies,
- * checkpoints, goal, and stylized background scenery.
+ * Parameterized Level Engine & Loader.
+ * Dynamically builds themed environments, terrain, blocks, collectibles,
+ * moving platforms, enemies, checkpoints, and goal arches from declarative level configs.
  */
 
 import * as THREE from 'three';
@@ -11,12 +11,18 @@ import { MysteryBlock, BreakableBlock, MovingPlatform, CheckpointFlag, GoalFlag 
 import { Coin } from '../entities/Coin.js';
 import { StarPowerUp } from '../entities/PowerUp.js';
 import { WalkerEnemy, HopperEnemy } from '../entities/Enemy.js';
+import { gameState } from '../systems/GameState.js';
+import { getLevelData, Level1_1 } from './levels/index.js';
 
 export class Level {
   constructor(scene, particles, camera) {
     this.scene = scene;
     this.particles = particles;
     this.camera = camera;
+
+    // Active Level metadata
+    this.currentLevelData = Level1_1;
+    this.levelBounds = { minX: 4, maxX: 154 };
 
     // Entities in level
     this.coins = [];
@@ -31,227 +37,264 @@ export class Level {
     this.sceneryGroup = new THREE.Group();
     this.scene.add(this.sceneryGroup);
 
-    this.levelBounds = { minX: 4, maxX: 154 };
-
-    // Shared materials for platforms & terrain
-    this.grassMat = new THREE.MeshLambertMaterial({ color: 0x4caf50 }); // Vibrant meadow green
-    this.dirtMat = new THREE.MeshLambertMaterial({ color: 0x6d4c41 });  // Warm earthy brown
-    this.cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.88 });
-    this.hillMat = new THREE.MeshLambertMaterial({ color: 0x388e3c });
-    this.distantHillMat = new THREE.MeshLambertMaterial({ color: 0x2e7d32 });
-    this.trunkMat = new THREE.MeshLambertMaterial({ color: 0x5d4037 });
-    this.foliageMat = new THREE.MeshLambertMaterial({ color: 0x66bb6a });
-    this.flowerMat1 = new THREE.MeshBasicMaterial({ color: 0xffeb3b });
-    this.flowerMat2 = new THREE.MeshBasicMaterial({ color: 0xff4081 });
+    // Active theme materials cache
+    this.materials = {};
   }
 
-  build() {
+  build(levelInput = null) {
     this.clear();
+
+    let data;
+    if (typeof levelInput === 'string') {
+      data = getLevelData(levelInput);
+    } else if (levelInput && levelInput.key) {
+      data = levelInput;
+    } else if (gameState && gameState.levelKey) {
+      data = getLevelData(gameState.levelKey);
+    } else {
+      data = Level1_1;
+    }
+
+    this.currentLevelData = data;
+    this.levelBounds = data.bounds || { minX: 4, maxX: 154 };
+
+    // 1. Camera Bounds
     this.camera.setBounds(this.levelBounds.minX, this.levelBounds.maxX, 3.5, 30);
 
-    // 1. Decorative Environment & Scenery
-    this.buildSkyAndClouds();
-    this.buildRollingHills();
-    this.buildFoliageAndDecorations();
+    // 2. Setup Theme, Lighting & Materials
+    this.applyTheme(data.theme);
 
-    // 2. Terrain Platforms & Level Layout
-    this.buildTerrain();
+    // 3. Build Scenery Backdrops
+    this.buildScenery(data.scenery, data.theme?.biome);
 
-    // 3. Interactive Blocks
-    this.buildBlocks();
+    // 4. Build Terrain & Floating Platforms
+    this.buildTerrain(data.platforms || [], data.floatingPlatforms || []);
 
-    // 4. Collectibles (Coins)
-    this.buildCoins();
+    // 5. Build Moving Platforms
+    this.buildMovingPlatforms(data.movingPlatforms || []);
 
-    // 5. Enemies
-    this.buildEnemies();
+    // 6. Build Interactive Blocks
+    this.buildBlocks(data.blocks || []);
 
-    // 6. Checkpoint & Goal
-    this.buildCheckpointsAndGoal();
+    // 7. Build Collectible Coins
+    this.buildCoins(data.coins || []);
+
+    // 8. Build Enemies
+    this.buildEnemies(data.enemies || []);
+
+    // 9. Build Checkpoint & Goal
+    this.buildCheckpointsAndGoal(data.checkpoint, data.goal);
   }
 
-  // --- Scenery ---
+  applyTheme(theme = {}) {
+    const skyColor = theme.skyColor || 0x60a5fa;
+    const fogColor = theme.fogColor || 0x93c5fd;
+    const fogDensity = theme.fogDensity || 0.008;
 
-  buildSkyAndClouds() {
-    // Stylized fluffy 3D clouds floating at background depth (Z = -6 to -14)
-    const cloudPositions = [
-      { x: 10, y: 12, z: -8, scale: 1.4 },
-      { x: 26, y: 14, z: -10, scale: 1.6 },
-      { x: 42, y: 11, z: -7, scale: 1.2 },
-      { x: 62, y: 13, z: -9, scale: 1.8 },
-      { x: 80, y: 12, z: -8, scale: 1.5 },
-      { x: 100, y: 15, z: -11, scale: 1.7 },
-      { x: 122, y: 13, z: -7, scale: 1.3 },
-      { x: 144, y: 14, z: -9, scale: 1.6 }
-    ];
+    this.scene.background = new THREE.Color(skyColor);
+    this.scene.fog = new THREE.FogExp2(fogColor, fogDensity);
 
-    cloudPositions.forEach(cp => {
+    const m = theme.materials || {};
+    this.materials = {
+      platformTop: new THREE.MeshLambertMaterial({ color: m.platformTop || 0x4caf50 }),
+      platformBody: new THREE.MeshLambertMaterial({ color: m.platformBody || 0x6d4c41 }),
+      cloud: new THREE.MeshLambertMaterial({ color: m.cloud || 0xffffff, transparent: true, opacity: 0.88 }),
+      hill: new THREE.MeshLambertMaterial({ color: m.hill || 0x388e3c }),
+      distantHill: new THREE.MeshLambertMaterial({ color: m.distantHill || 0x2e7d32 }),
+      trunk: new THREE.MeshLambertMaterial({ color: m.trunk || 0x5d4037 }),
+      foliage: new THREE.MeshLambertMaterial({ color: m.foliage || 0x66bb6a }),
+      rock: new THREE.MeshLambertMaterial({ color: m.rock || 0x37474f }),
+      crystal: new THREE.MeshLambertMaterial({
+        color: m.crystal || 0x00e5ff,
+        emissive: m.crystal || 0x00e5ff,
+        emissiveIntensity: 0.55
+      }),
+      mushroomCap: new THREE.MeshLambertMaterial({
+        color: m.mushroomCap || 0xab47bc,
+        emissive: 0x4a148c,
+        emissiveIntensity: 0.35
+      }),
+      mushroomStem: new THREE.MeshLambertMaterial({ color: m.mushroomStem || 0xd1c4e9 }),
+      flower1: new THREE.MeshBasicMaterial({ color: 0xffeb3b }),
+      flower2: new THREE.MeshBasicMaterial({ color: 0xff4081 })
+    };
+  }
+
+  // --- Scenery Builders ---
+
+  buildScenery(scenery = {}, biome = 'meadow') {
+    if (biome === 'cavern') {
+      this.buildCavernScenery(scenery);
+    } else {
+      this.buildMeadowScenery(scenery);
+    }
+  }
+
+  buildMeadowScenery(scenery) {
+    // Clouds
+    const clouds = scenery.clouds || [];
+    clouds.forEach(cp => {
       const cloud = new THREE.Group();
       cloud.position.set(cp.x, cp.y, cp.z);
 
-      // Multiple overlapping puffy spheres
-      const s1 = new THREE.Mesh(new THREE.SphereGeometry(1.2 * cp.scale, 8, 8), this.cloudMat);
-      const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.9 * cp.scale, 8, 8), this.cloudMat);
+      const s1 = new THREE.Mesh(new THREE.SphereGeometry(1.2 * cp.scale, 8, 8), this.materials.cloud);
+      const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.9 * cp.scale, 8, 8), this.materials.cloud);
       s2.position.set(-1.0 * cp.scale, -0.2 * cp.scale, 0);
-      const s3 = new THREE.Mesh(new THREE.SphereGeometry(0.85 * cp.scale, 8, 8), this.cloudMat);
+      const s3 = new THREE.Mesh(new THREE.SphereGeometry(0.85 * cp.scale, 8, 8), this.materials.cloud);
       s3.position.set(1.0 * cp.scale, -0.2 * cp.scale, 0);
 
       cloud.add(s1, s2, s3);
       this.sceneryGroup.add(cloud);
     });
-  }
 
-  buildRollingHills() {
-    // Smooth rounded hills pushed safely into the background (Z <= -12) with Z-flattening so they never intersect the runway
-    const hills = [
-      { x: 8, y: -2, z: -14, r: 10, mat: this.hillMat },
-      { x: 25, y: -3, z: -20, r: 15, mat: this.distantHillMat },
-      { x: 45, y: -2, z: -15, r: 11, mat: this.hillMat },
-      { x: 68, y: -4, z: -22, r: 17, mat: this.distantHillMat },
-      { x: 92, y: -2, z: -14, r: 11, mat: this.hillMat },
-      { x: 115, y: -3, z: -18, r: 14, mat: this.distantHillMat },
-      { x: 138, y: -2, z: -14, r: 10, mat: this.hillMat }
-    ];
-
+    // Rolling Hills
+    const hills = scenery.hills || [];
     hills.forEach(h => {
-      // Create hemisphere and flatten depth (Z) by 0.35 so it serves as a backdrop silhouette
       const geo = new THREE.SphereGeometry(h.r, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
-      geo.scale(1, 1, 0.35); // Flatten in Z to prevent any foreground clipping
-      const mesh = new THREE.Mesh(geo, h.mat);
+      geo.scale(1, 1, 0.35);
+      const mat = h.mat === 'distantHill' ? this.materials.distantHill : this.materials.hill;
+      const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(h.x, h.y, h.z);
       this.sceneryGroup.add(mesh);
     });
-  }
 
-  buildFoliageAndDecorations() {
-    // Cute stylized trees (round puffed foliage on brown trunks) set safely behind runway (Z = -2.4)
-    const trees = [
-      { x: 4, y: 2.0, z: -2.4, s: 1.0 },
-      { x: 12, y: 2.0, z: -2.4, s: 1.2 },
-      { x: 22, y: 2.0, z: -2.5, s: 1.1 },
-      { x: 38, y: 3.5, z: -2.4, s: 1.3 },
-      { x: 55, y: 2.0, z: -2.4, s: 1.0 },
-      { x: 74, y: 2.0, z: -2.5, s: 1.4 },
-      { x: 88, y: 4.0, z: -2.5, s: 1.2 },
-      { x: 110, y: 2.0, z: -2.4, s: 1.1 },
-      { x: 135, y: 2.0, z: -2.5, s: 1.3 }
-    ];
-
+    // Trees
+    const trees = scenery.trees || [];
     trees.forEach(t => {
       const tree = new THREE.Group();
       tree.position.set(t.x, t.y, t.z);
 
       const trunkGeo = new THREE.CylinderGeometry(0.25 * t.s, 0.35 * t.s, 1.8 * t.s, 8);
-      const trunk = new THREE.Mesh(trunkGeo, this.trunkMat);
+      const trunk = new THREE.Mesh(trunkGeo, this.materials.trunk);
       trunk.position.y = 0.9 * t.s;
       tree.add(trunk);
 
-      // Puffy green foliage sphere
       const folGeo = new THREE.SphereGeometry(1.1 * t.s, 10, 8);
-      const fol = new THREE.Mesh(folGeo, this.foliageMat);
+      const fol = new THREE.Mesh(folGeo, this.materials.foliage);
       fol.position.y = 2.1 * t.s;
       tree.add(fol);
 
       this.sceneryGroup.add(tree);
     });
 
-    // Decorative flowers along the ground
-    for (let x = 2; x < 145; x += 3.5) {
-      if (Math.random() < 0.6) {
-        const flower = new THREE.Group();
-        flower.position.set(x + (Math.random() - 0.5) * 1.5, 2.05, 0.5);
+    // Flowers
+    if (scenery.hasFlowers) {
+      for (let x = 2; x < (this.levelBounds.maxX - 5); x += 3.5) {
+        if (Math.random() < 0.6) {
+          const flower = new THREE.Group();
+          flower.position.set(x + (Math.random() - 0.5) * 1.5, 2.05, 0.5);
 
-        const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 4), this.grassMat);
-        stem.position.y = 0.12;
+          const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.25, 4), this.materials.platformTop);
+          stem.position.y = 0.12;
 
-        const petalMat = Math.random() < 0.5 ? this.flowerMat1 : this.flowerMat2;
-        const petals = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), petalMat);
-        petals.position.y = 0.26;
+          const petalMat = Math.random() < 0.5 ? this.materials.flower1 : this.materials.flower2;
+          const petals = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), petalMat);
+          petals.position.y = 0.26;
 
-        flower.add(stem, petals);
-        this.sceneryGroup.add(flower);
+          flower.add(stem, petals);
+          this.sceneryGroup.add(flower);
+        }
       }
     }
   }
 
-  // --- Terrain Creation Helper ---
+  buildCavernScenery(scenery) {
+    // Stalactites hanging from cave ceiling
+    const stalactites = scenery.stalactites || [];
+    stalactites.forEach(st => {
+      const coneGeo = new THREE.ConeGeometry(st.r, st.h, 7);
+      const mesh = new THREE.Mesh(coneGeo, this.materials.rock);
+      mesh.rotation.x = Math.PI; // Point downwards
+      mesh.position.set(st.x, st.y, st.z);
+      this.sceneryGroup.add(mesh);
+    });
+
+    // Glowing Crystals on ground ledges
+    const crystals = scenery.crystals || [];
+    crystals.forEach(cr => {
+      const crGroup = new THREE.Group();
+      crGroup.position.set(cr.x, cr.y, cr.z);
+
+      const cGeo = new THREE.OctahedronGeometry(0.35 * cr.s, 0);
+      cGeo.scale(0.6, 1.8, 0.6);
+      const cMat = new THREE.MeshLambertMaterial({
+        color: cr.color || 0x00e5ff,
+        emissive: cr.color || 0x00e5ff,
+        emissiveIntensity: 0.65
+      });
+      const cMesh = new THREE.Mesh(cGeo, cMat);
+      cMesh.rotation.z = (Math.random() - 0.5) * 0.4;
+      crGroup.add(cMesh);
+
+      this.sceneryGroup.add(crGroup);
+    });
+
+    // Luminescent cavern mushrooms
+    const mushrooms = scenery.mushrooms || [];
+    mushrooms.forEach(m => {
+      const mGroup = new THREE.Group();
+      mGroup.position.set(m.x, m.y, m.z);
+
+      const stemGeo = new THREE.CylinderGeometry(0.08 * m.s, 0.12 * m.s, 0.5 * m.s, 6);
+      const stem = new THREE.Mesh(stemGeo, this.materials.mushroomStem);
+      stem.position.y = 0.25 * m.s;
+      mGroup.add(stem);
+
+      const capGeo = new THREE.SphereGeometry(0.35 * m.s, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.55);
+      const cap = new THREE.Mesh(capGeo, this.materials.mushroomCap);
+      cap.position.y = 0.5 * m.s;
+      mGroup.add(cap);
+
+      this.sceneryGroup.add(mGroup);
+    });
+
+    // Background cavern stone pillars
+    const pillars = scenery.caveBackdropPillars || [];
+    pillars.forEach(p => {
+      const pGeo = new THREE.BoxGeometry(p.w, p.h, 2.0);
+      const mesh = new THREE.Mesh(pGeo, this.materials.rock);
+      mesh.position.set(p.x, p.y, p.z);
+      this.sceneryGroup.add(mesh);
+    });
+  }
+
+  // --- Terrain Platforms ---
+
+  buildTerrain(platforms, floatingPlatforms) {
+    platforms.forEach(p => {
+      this.createPlatform(p.x, p.y, p.w, p.h || 4.0, p.d || 3.0);
+    });
+
+    floatingPlatforms.forEach(fp => {
+      this.createFloatingPlatform(fp.x, fp.y, fp.w || 3.0);
+    });
+  }
 
   createPlatform(x, y, w, h = 4.0, d = 3.0) {
     const group = new THREE.Group();
     group.position.set(x, y - h / 2, 0);
 
-    // Earth/Dirt body
-    const dirtGeo = new THREE.BoxGeometry(w, h - 0.35, d);
-    const dirtMesh = new THREE.Mesh(dirtGeo, this.dirtMat);
-    dirtMesh.position.y = -0.175;
-    dirtMesh.receiveShadow = true;
-    group.add(dirtMesh);
+    const bodyGeo = new THREE.BoxGeometry(w, h - 0.35, d);
+    const bodyMesh = new THREE.Mesh(bodyGeo, this.materials.platformBody);
+    bodyMesh.position.y = -0.175;
+    bodyMesh.receiveShadow = true;
+    group.add(bodyMesh);
 
-    // Lush green grass top layer
-    const grassGeo = new THREE.BoxGeometry(w + 0.08, 0.4, d + 0.08);
-    const grassMesh = new THREE.Mesh(grassGeo, this.grassMat);
-    grassMesh.position.y = (h - 0.35) / 2 + 0.05;
-    grassMesh.receiveShadow = true;
-    group.add(grassMesh);
+    const topGeo = new THREE.BoxGeometry(w + 0.08, 0.4, d + 0.08);
+    const topMesh = new THREE.Mesh(topGeo, this.materials.platformTop);
+    topMesh.position.y = (h - 0.35) / 2 + 0.05;
+    topMesh.receiveShadow = true;
+    group.add(topMesh);
 
     this.sceneryGroup.add(group);
 
-    // Register solid collider
-    const collider = {
+    collision.addCollider({
       x: x,
       y: y - h / 2,
       w: w,
       h: h,
       type: 'solid_ground'
-    };
-    collision.addCollider(collider);
-  }
-
-  // --- Level Layout ---
-
-  buildTerrain() {
-    // 1. Zone 1: Starting Meadow (x: -5 to 24)
-    this.createPlatform(9.5, 2.0, 31, 5.0);
-
-    // 2. Zone 2: First Small Gap & Stepping Stones (x: 27 to 34)
-    this.createPlatform(29.0, 2.0, 6, 5.0);
-    this.createPlatform(38.0, 3.5, 8, 8.0); // Elevated mound
-
-    // 3. Zone 3: Valley & Second Meadow (x: 46 to 70)
-    this.createPlatform(58.0, 2.0, 26, 5.0);
-
-    // 4. Elevated floating stone platforms in Valley
-    this.createFloatingPlatform(52.0, 5.5, 3.5);
-    this.createFloatingPlatform(63.0, 6.2, 3.5);
-
-    // 5. Zone 4: Pit with Moving Platform (x: 74 to 86)
-    // Moving platform crossing the canyon
-    const mp1 = new MovingPlatform(this.scene, 79.0, 3.2, 3.8, 0, 1.5);
-    this.movingPlatforms.push(mp1);
-
-    // 6. Zone 5: Checkpoint Meadow (x: 88 to 110)
-    this.createPlatform(99.0, 2.0, 24, 5.0);
-
-    // Elevated steps leading up
-    this.createFloatingPlatform(94.0, 5.2, 3.0);
-    this.createFloatingPlatform(102.0, 7.0, 3.5);
-
-    // 7. Zone 6: Final Gauntlet & Sky Stairs (x: 114 to 142)
-    this.createPlatform(117.0, 2.0, 8, 5.0);
-    
-    // Vertical moving platform over final chasm
-    const mp2 = new MovingPlatform(this.scene, 124.0, 3.5, 0, 2.2, 1.8);
-    this.movingPlatforms.push(mp2);
-
-    this.createPlatform(132.0, 3.5, 7, 8.0);
-
-    // Grand staircase to goal
-    this.createFloatingPlatform(137.0, 4.8, 2.0);
-    this.createFloatingPlatform(139.5, 6.0, 2.0);
-    this.createFloatingPlatform(142.0, 7.2, 2.0);
-
-    // 8. Zone 7: Goal Castle Meadow (x: 147 to 160)
-    this.createPlatform(152.0, 2.0, 16, 5.0);
+    });
   }
 
   createFloatingPlatform(x, y, w = 3.0) {
@@ -259,13 +302,13 @@ export class Level {
     group.position.set(x, y, 0);
 
     const geo = new THREE.BoxGeometry(w, 0.7, 2.2);
-    const mesh = new THREE.Mesh(geo, this.dirtMat);
+    const mesh = new THREE.Mesh(geo, this.materials.platformBody);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     group.add(mesh);
 
     const topGeo = new THREE.BoxGeometry(w + 0.06, 0.25, 2.26);
-    const topMesh = new THREE.Mesh(topGeo, this.grassMat);
+    const topMesh = new THREE.Mesh(topGeo, this.materials.platformTop);
     topMesh.position.y = 0.28;
     group.add(topMesh);
 
@@ -280,122 +323,124 @@ export class Level {
     });
   }
 
+  // --- Moving Platforms ---
+
+  buildMovingPlatforms(movingPlats) {
+    movingPlats.forEach(mp => {
+      const plat = new MovingPlatform(
+        this.scene,
+        mp.x,
+        mp.y,
+        mp.rangeX || 0,
+        mp.rangeY || 0,
+        mp.speed || 1.5
+      );
+      this.movingPlatforms.push(plat);
+    });
+  }
+
   // --- Interactive Blocks ---
 
-  buildBlocks() {
+  buildBlocks(blocks) {
     const spawnStarPowerUp = (x, y) => {
       const p = new StarPowerUp(this.scene, this.particles, this.camera, x, y, 0);
       this.powerUps.push(p);
     };
 
-    // Zone 1: Introductory Blocks (Mystery + Brick)
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, null, 14.0, 5.2, 'COIN'));
-    this.blocks.push(new BreakableBlock(this.scene, this.particles, this.camera, 15.0, 5.2));
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, spawnStarPowerUp, 16.0, 5.2, 'STAR'));
-    this.blocks.push(new BreakableBlock(this.scene, this.particles, this.camera, 17.0, 5.2));
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, null, 18.0, 5.2, 'COIN'));
-
-    // Zone 2: Elevated Blocks on Mound
-    this.blocks.push(new BreakableBlock(this.scene, this.particles, this.camera, 37.0, 7.2));
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, null, 38.0, 7.2, 'COIN'));
-    this.blocks.push(new BreakableBlock(this.scene, this.particles, this.camera, 39.0, 7.2));
-
-    // Zone 3: Valley High Mystery Blocks
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, null, 57.0, 5.8, 'COIN'));
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, null, 59.0, 5.8, 'COIN'));
-
-    // Zone 5: Checkpoint area hidden star block
-    this.blocks.push(new BreakableBlock(this.scene, this.particles, this.camera, 98.0, 5.6));
-    this.blocks.push(new MysteryBlock(this.scene, this.particles, this.camera, spawnStarPowerUp, 99.0, 5.6, 'STAR'));
-    this.blocks.push(new BreakableBlock(this.scene, this.particles, this.camera, 100.0, 5.6));
+    blocks.forEach(b => {
+      if (b.type === 'mystery') {
+        const callback = b.reward === 'STAR' ? spawnStarPowerUp : null;
+        this.blocks.push(new MysteryBlock(
+          this.scene,
+          this.particles,
+          this.camera,
+          callback,
+          b.x,
+          b.y,
+          b.reward || 'COIN'
+        ));
+      } else if (b.type === 'brick') {
+        this.blocks.push(new BreakableBlock(
+          this.scene,
+          this.particles,
+          this.camera,
+          b.x,
+          b.y
+        ));
+      }
+    });
   }
 
-  // --- Collectible Coins ---
+  // --- Collectibles ---
 
-  buildCoins() {
-    // Guiding coins along arcs and platforms
-    const coinCoords = [
-      // Safe starter arc
-      { x: 7, y: 3.2 }, { x: 8, y: 3.8 }, { x: 9, y: 4.0 }, { x: 10, y: 3.8 }, { x: 11, y: 3.2 },
-      // Above first blocks
-      { x: 14, y: 6.8 }, { x: 16, y: 6.8 }, { x: 18, y: 6.8 },
-      // Jump over first small gap
-      { x: 26, y: 3.5 }, { x: 27, y: 4.2 }, { x: 28, y: 3.5 },
-      // Mound coins
-      { x: 37, y: 8.6 }, { x: 38, y: 8.8 }, { x: 39, y: 8.6 },
-      // Floating platform coins
-      { x: 51, y: 6.8 }, { x: 52, y: 6.8 }, { x: 53, y: 6.8 },
-      { x: 62, y: 7.5 }, { x: 63, y: 7.5 }, { x: 64, y: 7.5 },
-      // Moving platform 1 track
-      { x: 77, y: 4.6 }, { x: 79, y: 4.6 }, { x: 81, y: 4.6 },
-      // Mid-level elevated platforms
-      { x: 93, y: 6.4 }, { x: 94, y: 6.4 }, { x: 95, y: 6.4 },
-      { x: 101, y: 8.2 }, { x: 102, y: 8.2 }, { x: 103, y: 8.2 },
-      // Moving platform 2 vertical leap
-      { x: 124, y: 5.5 }, { x: 124, y: 7.0 },
-      // Final staircase reward trail
-      { x: 137, y: 6.0 }, { x: 139.5, y: 7.2 }, { x: 142, y: 8.4 },
-      // Pre-goal victory run
-      { x: 145, y: 3.2 }, { x: 147, y: 3.2 }, { x: 149, y: 3.2 }
-    ];
-
-    coinCoords.forEach(c => {
+  buildCoins(coins) {
+    coins.forEach(c => {
       this.coins.push(new Coin(this.scene, this.particles, this.camera, c.x, c.y, 0));
     });
   }
 
   // --- Enemies ---
 
-  buildEnemies() {
-    // 1. First gentle Walker near start
-    this.enemies.push(new WalkerEnemy(this.scene, this.particles, this.camera, 20.0, 2.8, 3.5));
-
-    // 2. Walker on elevated mound
-    this.enemies.push(new WalkerEnemy(this.scene, this.particles, this.camera, 38.0, 4.2, 2.5));
-
-    // 3. First Hopper enemy in the Valley
-    this.enemies.push(new HopperEnemy(this.scene, this.particles, this.camera, 50.0, 2.8, 3.0));
-
-    // 4. Walker patrol in middle valley
-    this.enemies.push(new WalkerEnemy(this.scene, this.particles, this.camera, 62.0, 2.8, 4.0));
-
-    // 5. Dual enemies after checkpoint: Walker + Hopper
-    this.enemies.push(new WalkerEnemy(this.scene, this.particles, this.camera, 96.0, 2.8, 3.5));
-    this.enemies.push(new HopperEnemy(this.scene, this.particles, this.camera, 105.0, 2.8, 3.0));
-
-    // 6. Gauntlet Hopper before final jump
-    this.enemies.push(new HopperEnemy(this.scene, this.particles, this.camera, 132.0, 4.2, 2.0));
+  buildEnemies(enemies) {
+    enemies.forEach(e => {
+      if (e.type === 'walker') {
+        this.enemies.push(new WalkerEnemy(
+          this.scene,
+          this.particles,
+          this.camera,
+          e.x,
+          e.y,
+          e.patrolDistance || 3.0
+        ));
+      } else if (e.type === 'hopper') {
+        this.enemies.push(new HopperEnemy(
+          this.scene,
+          this.particles,
+          this.camera,
+          e.x,
+          e.y,
+          e.patrolDistance || 3.0
+        ));
+      }
+    });
   }
 
   // --- Checkpoint & Goal ---
 
-  buildCheckpointsAndGoal() {
-    // Checkpoint situated right after the first moving platform challenge (x = 89)
-    this.checkpoint = new CheckpointFlag(this.scene, this.particles, this.camera, 89.0, 2.0);
-
-    // Final Goal at end of level (x = 152)
-    this.goal = new GoalFlag(this.scene, this.particles, this.camera, 152.0, 2.0);
+  buildCheckpointsAndGoal(checkpointData, goalData) {
+    if (checkpointData) {
+      this.checkpoint = new CheckpointFlag(
+        this.scene,
+        this.particles,
+        this.camera,
+        checkpointData.x,
+        checkpointData.y
+      );
+    }
+    if (goalData) {
+      this.goal = new GoalFlag(
+        this.scene,
+        this.particles,
+        this.camera,
+        goalData.x,
+        goalData.y
+      );
+    }
   }
 
   update(dt, player) {
-    // Update interactive blocks
     for (let b of this.blocks) {
-      if (typeof b.update === 'function') {
-        b.update(dt);
-      }
+      if (typeof b.update === 'function') b.update(dt);
     }
 
-    // Update moving platforms
     for (let mp of this.movingPlatforms) {
       mp.update(dt);
     }
 
-    // Update coins
     for (let c of this.coins) {
       c.update(dt, player);
     }
 
-    // Update power-ups
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const p = this.powerUps[i];
       p.update(dt, player);
@@ -404,7 +449,6 @@ export class Level {
       }
     }
 
-    // Update enemies
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       e.update(dt, player);
@@ -413,13 +457,11 @@ export class Level {
       }
     }
 
-    // Update checkpoint & goal
     if (this.checkpoint) this.checkpoint.update(dt, player);
     if (this.goal) this.goal.update(dt, player);
   }
 
   clear() {
-    // Remove all dynamically spawned objects & colliders
     collision.clear();
 
     for (let c of this.coins) c.destroy();
@@ -447,7 +489,6 @@ export class Level {
       this.goal = null;
     }
 
-    // Remove scenery
     while (this.sceneryGroup.children.length > 0) {
       const obj = this.sceneryGroup.children[0];
       this.sceneryGroup.remove(obj);

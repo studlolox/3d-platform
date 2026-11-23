@@ -373,4 +373,34 @@ test.describe('Super Jump World — Playwright Automated Suite', () => {
     const touchControls = page.locator('#touch-controls');
     await expect(touchControls).toBeVisible();
   });
+
+  test('14. Multi-Level Progression to World 1-2 Underground Cavern', async ({ page }) => {
+    await page.click('#btn-start-game');
+    await page.waitForTimeout(300);
+
+    // Trigger goal arch in Level 1-1
+    await page.evaluate(() => {
+      window.__GAME__.player.reset({ x: 152.0, y: 2.5, z: 0 });
+      window.__GAME__.level.goal.reachGoal();
+    });
+    await page.waitForTimeout(400);
+
+    const nextBtn = page.locator('#btn-victory-next');
+    await expect(nextBtn).toBeVisible();
+    await nextBtn.click();
+    await page.waitForTimeout(400);
+
+    const hudWorld = page.locator('#hud-world-val');
+    await expect(hudWorld).toHaveText('1 - 2');
+
+    const levelData = await page.evaluate(() => ({
+      key: window.__GAME__.gameState.levelKey,
+      biome: window.__GAME__.level.currentLevelData?.theme?.biome,
+      enemies: window.__GAME__.level.enemies.length
+    }));
+
+    expect(levelData.key).toBe('1-2');
+    expect(levelData.biome).toBe('cavern');
+    expect(levelData.enemies).toBeGreaterThan(0);
+  });
 });

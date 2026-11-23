@@ -11,6 +11,7 @@ export class HUD {
     this.game = game;
 
     this.container = document.getElementById('hud');
+    this.worldVal = document.getElementById('hud-world-val');
     this.livesVal = document.getElementById('hud-lives-val');
     this.coinsVal = document.getElementById('hud-coins-val');
     this.scoreVal = document.getElementById('hud-score-val');
@@ -51,6 +52,12 @@ export class HUD {
   }
 
   update(data) {
+    if (this.worldVal && data.levelKey) {
+      const parts = data.levelKey.split('-');
+      if (parts.length === 2) {
+        this.worldVal.textContent = `${parts[0]} - ${parts[1]}`;
+      }
+    }
     if (this.livesVal) this.livesVal.textContent = data.lives;
     if (this.coinsVal) this.coinsVal.textContent = String(data.coins).padStart(2, '0');
     if (this.scoreVal) this.scoreVal.textContent = String(data.score).padStart(6, '0');

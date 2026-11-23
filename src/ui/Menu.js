@@ -5,6 +5,7 @@
 
 import { gameState, STATES } from '../systems/GameState.js';
 import { audio } from '../core/Audio.js';
+import { getNextLevelKey } from '../world/levels/index.js';
 
 export class MenuManager {
   constructor(game) {
@@ -33,6 +34,7 @@ export class MenuManager {
     this.victoryTimeVal = document.getElementById('victory-time-val');
     this.victoryCoinsVal = document.getElementById('victory-coins-val');
     this.victoryScoreVal = document.getElementById('victory-score-val');
+    this.btnVictoryNext = document.getElementById('btn-victory-next');
     this.btnVictoryReplay = document.getElementById('btn-victory-replay');
     this.btnVictoryMenu = document.getElementById('btn-victory-menu');
 
@@ -101,6 +103,13 @@ export class MenuManager {
     }
 
     // 3. Victory Screen
+    if (this.btnVictoryNext) {
+      this.btnVictoryNext.addEventListener('click', () => {
+        audio.playUIClick();
+        this.game.nextLevel();
+      });
+    }
+
     if (this.btnVictoryReplay) {
       this.btnVictoryReplay.addEventListener('click', () => {
         audio.playUIClick();
@@ -155,6 +164,15 @@ export class MenuManager {
       if (this.victoryTimeVal) this.victoryTimeVal.textContent = `+${timeBonus}`;
       if (this.victoryCoinsVal) this.victoryCoinsVal.textContent = data.coins;
       if (this.victoryScoreVal) this.victoryScoreVal.textContent = String(totalScore).padStart(6, '0');
+
+      if (this.btnVictoryNext) {
+        const nextKey = getNextLevelKey(data.levelKey || '1-1');
+        if (nextKey) {
+          this.btnVictoryNext.classList.remove('hidden');
+        } else {
+          this.btnVictoryNext.classList.add('hidden');
+        }
+      }
 
       this.victoryMenu.classList.remove('hidden');
     } else if (data.state === STATES.GAME_OVER) {
