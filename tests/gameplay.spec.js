@@ -403,4 +403,32 @@ test.describe('Super Jump World — Playwright Automated Suite', () => {
     expect(levelData.biome).toBe('cavern');
     expect(levelData.enemies).toBeGreaterThan(0);
   });
+
+  test('15. Multi-Level Progression to World 1-3 Treetop Canopy', async ({ page }) => {
+    await page.click('#btn-start-game');
+    await page.waitForTimeout(300);
+
+    // Direct load or progression to 1-3
+    await page.evaluate(() => {
+      window.__GAME__.loadLevel('1-3');
+    });
+    await page.waitForTimeout(400);
+
+    const hudWorld = page.locator('#hud-world-val');
+    await expect(hudWorld).toHaveText('1 - 3');
+
+    const levelData = await page.evaluate(() => ({
+      key: window.__GAME__.gameState.levelKey,
+      name: window.__GAME__.level.currentLevelData?.name,
+      biome: window.__GAME__.level.currentLevelData?.theme?.biome,
+      enemies: window.__GAME__.level.enemies.length,
+      movingPlatforms: window.__GAME__.level.movingPlatforms.length
+    }));
+
+    expect(levelData.key).toBe('1-3');
+    expect(levelData.name).toBe('Treetop Canopy');
+    expect(levelData.biome).toBe('canopy');
+    expect(levelData.enemies).toBeGreaterThan(0);
+    expect(levelData.movingPlatforms).toBeGreaterThanOrEqual(3);
+  });
 });

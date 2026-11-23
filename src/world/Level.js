@@ -115,6 +115,10 @@ export class Level {
         emissiveIntensity: 0.35
       }),
       mushroomStem: new THREE.MeshLambertMaterial({ color: m.mushroomStem || 0xd1c4e9 }),
+      bark: new THREE.MeshLambertMaterial({ color: m.bark || 0x3e2723 }),
+      canopyLeaves: new THREE.MeshLambertMaterial({ color: m.canopyLeaves || 0x388e3c }),
+      leafOrange: new THREE.MeshLambertMaterial({ color: m.leafOrange || 0xf57c00 }),
+      sunsetCloud: new THREE.MeshLambertMaterial({ color: m.sunsetCloud || 0xffecb3, transparent: true, opacity: 0.88 }),
       flower1: new THREE.MeshBasicMaterial({ color: 0xffeb3b }),
       flower2: new THREE.MeshBasicMaterial({ color: 0xff4081 })
     };
@@ -125,6 +129,8 @@ export class Level {
   buildScenery(scenery = {}, biome = 'meadow') {
     if (biome === 'cavern') {
       this.buildCavernScenery(scenery);
+    } else if (biome === 'canopy') {
+      this.buildCanopyScenery(scenery);
     } else {
       this.buildMeadowScenery(scenery);
     }
@@ -255,6 +261,45 @@ export class Level {
       const mesh = new THREE.Mesh(pGeo, this.materials.rock);
       mesh.position.set(p.x, p.y, p.z);
       this.sceneryGroup.add(mesh);
+    });
+  }
+
+  buildCanopyScenery(scenery) {
+    // 1. Giant ancient tree trunks rising through the scene
+    const trunks = scenery.giantTrunks || [];
+    trunks.forEach(tr => {
+      const trunkGeo = new THREE.CylinderGeometry(tr.r * 0.85, tr.r, tr.h, 12);
+      const trunkMesh = new THREE.Mesh(trunkGeo, this.materials.bark);
+      trunkMesh.position.set(tr.x, tr.y, tr.z);
+      this.sceneryGroup.add(trunkMesh);
+    });
+
+    // 2. Colossal canopy leaf clusters crowning the trees
+    const leafClusters = scenery.leafClusters || [];
+    leafClusters.forEach(lc => {
+      const geo = new THREE.SphereGeometry(1.0, 10, 8);
+      geo.scale(lc.rx, lc.ry, lc.rz);
+      const mat = lc.mat === 'leafOrange' ? this.materials.leafOrange : this.materials.canopyLeaves;
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(lc.x, lc.y, lc.z);
+      this.sceneryGroup.add(mesh);
+    });
+
+    // 3. Sunset / twilight clouds drifting through the canopy depth
+    const clouds = scenery.sunsetClouds || [];
+    clouds.forEach(cp => {
+      const cloud = new THREE.Group();
+      cloud.position.set(cp.x, cp.y, cp.z);
+
+      const mat = this.materials.sunsetCloud;
+      const s1 = new THREE.Mesh(new THREE.SphereGeometry(1.3 * cp.scale, 8, 8), mat);
+      const s2 = new THREE.Mesh(new THREE.SphereGeometry(0.95 * cp.scale, 8, 8), mat);
+      s2.position.set(-1.1 * cp.scale, -0.2 * cp.scale, 0);
+      const s3 = new THREE.Mesh(new THREE.SphereGeometry(0.9 * cp.scale, 8, 8), mat);
+      s3.position.set(1.1 * cp.scale, -0.2 * cp.scale, 0);
+
+      cloud.add(s1, s2, s3);
+      this.sceneryGroup.add(cloud);
     });
   }
 

@@ -378,6 +378,38 @@ async function runPlaywrightSuite() {
   assert(nextLevelState.hudWorldText === '1 - 2', `Top HUD updated to display WORLD 1 - 2 (${nextLevelState.hudWorldText})`);
   assert(nextLevelState.enemyCount > 0, `Underground cavern enemies populated (${nextLevelState.enemyCount} enemies)`);
 
+  // 15. Multi-Level Progression to World 1-3 Treetop Canopy
+  console.log('\nSTAGE 15: Multi-Level Progression to World 1-3 Treetop Canopy');
+  await page.evaluate(() => {
+    window.__GAME__.player.reset({ x: 142.0, y: 2.5, z: 0 });
+    window.__GAME__.level.goal.reachGoal();
+  });
+  await page.waitForTimeout(300);
+
+  const nextBtnVisible1_2 = await page.locator('#btn-victory-next').isVisible();
+  assert(nextBtnVisible1_2, 'Next Level button visible after completing Level 1-2');
+
+  await page.locator('#btn-victory-next').click();
+  await page.waitForTimeout(400);
+
+  const level1_3State = await page.evaluate(() => ({
+    levelKey: window.__GAME__.gameState.levelKey,
+    world: window.__GAME__.gameState.currentWorld,
+    level: window.__GAME__.gameState.currentLevel,
+    levelName: window.__GAME__.level.currentLevelData?.name,
+    biome: window.__GAME__.level.currentLevelData?.theme?.biome,
+    hudWorldText: document.getElementById('hud-world-val')?.textContent,
+    enemyCount: window.__GAME__.level.enemies.length,
+    blockCount: window.__GAME__.level.blocks.length,
+    movingPlatCount: window.__GAME__.level.movingPlatforms.length
+  }));
+
+  assert(level1_3State.levelKey === '1-3', `Game loaded Level 1-3 (active: ${level1_3State.levelKey})`);
+  assert(level1_3State.biome === 'canopy', `Treetop Canopy biome active with golden sunset atmosphere`);
+  assert(level1_3State.hudWorldText === '1 - 3', `Top HUD updated to display WORLD 1 - 3 (${level1_3State.hudWorldText})`);
+  assert(level1_3State.enemyCount > 0, `Canopy arboreal enemies populated (${level1_3State.enemyCount} enemies)`);
+  assert(level1_3State.movingPlatCount >= 3, `High altitude moving platforms active (${level1_3State.movingPlatCount} platforms)`);
+
   // Summary
   console.log('\n==================================================================');
   console.log('                 PLAYWRIGHT TEST SUMMARY                          ');

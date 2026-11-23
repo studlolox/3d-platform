@@ -30,8 +30,12 @@ A high-quality, fully playable 3D platformer game inspired by classic Super Mari
     - Subterranean cavern biome with deep midnight atmosphere, hanging stalactites, and luminescent crystals.
     - Cool slate stone and deep bedrock platforms with tighter ceiling clearances and vertical chasm elevators.
     - Ambushing hopper enemies, hidden star dash power-up, and checkpoint before the final cavern ascent.
+  - **World 1-3: Treetop Canopy:**
+    - High-altitude arboreal biome set against a golden-coral sunset sky with warm twilight haze.
+    - Colossal ancient redwood tree trunks, massive leafy canopy crowns, and drifting sunset clouds.
+    - Elevated precision platforming, swaying wooden stepping boughs, 3 distinct moving platform elevators over the void, and an elevated tree-summit Goal Arch.
   - **Victory Progression:**
-    - Dynamic "NEXT LEVEL 🚀" action seamlessly advances the player to the next stage with HUD level counter updates (`1 - 1`, `1 - 2`).
+    - Dynamic "NEXT LEVEL 🚀" action seamlessly advances the player to the next stage with HUD level counter updates (`1 - 1`, `1 - 2`, `1 - 3`).
 - **Arcade HUD & Menus:**
   - Main Menu, Controls Modal, Pause Menu, Victory Screen, and Game Over Screen.
   - Real-time HUD showing lives, coins, world, score, countdown timer, and power-up meter.
