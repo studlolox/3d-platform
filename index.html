@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Super Jump World — 3D Platform Adventure</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <div id="game-container">
+    <!-- 3D Canvas will be injected here -->
+
+    <!-- Floating in-game score notifications -->
+    <div id="floating-text-container"></div>
+
+    <!-- Gameplay HUD -->
+    <div id="hud" class="ui-screen hidden">
+      <div class="hud-top-bar">
+        <div class="hud-item hud-lives">
+          <span class="hud-icon">❤️</span>
+          <span class="hud-label">x</span>
+          <span id="hud-lives-val">3</span>
+        </div>
+        <div class="hud-item hud-coins">
+          <span class="hud-icon coin-icon">🪙</span>
+          <span class="hud-label">x</span>
+          <span id="hud-coins-val">00</span>
+        </div>
+        <div class="hud-item hud-world">
+          <div class="hud-world-sub">WORLD</div>
+          <div class="hud-world-name">1 - 1</div>
+        </div>
+        <div class="hud-item hud-score">
+          <div class="hud-world-sub">SCORE</div>
+          <span id="hud-score-val">000000</span>
+        </div>
+        <div class="hud-item hud-time">
+          <div class="hud-world-sub">TIME</div>
+          <span id="hud-time-val">300</span>
+        </div>
+        <div class="hud-buttons">
+          <button id="btn-sound-toggle" class="btn-icon" title="Toggle Sound">🔊</button>
+          <button id="btn-pause" class="btn-icon" title="Pause Game">⏸️</button>
+        </div>
+      </div>
+
+      <!-- Powerup status indicator -->
+      <div id="hud-powerup-bar" class="powerup-bar hidden">
+        <span class="powerup-icon">⭐</span>
+        <span class="powerup-name">STAR DASH</span>
+        <div class="powerup-meter">
+          <div id="powerup-fill" class="powerup-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="touch-controls" class="touch-controls hidden">
+      <div class="touch-left-cluster">
+        <button id="touch-left" class="touch-btn" aria-label="Move Left">◀</button>
+        <button id="touch-right" class="touch-btn" aria-label="Move Right">▶</button>
+      </div>
+      <div class="touch-right-cluster">
+        <button id="touch-sprint" class="touch-btn touch-sprint-btn" aria-label="Sprint">⚡</button>
+        <button id="touch-jump" class="touch-btn touch-jump-btn" aria-label="Jump">▲</button>
+      </div>
+    </div>
+
+    <!-- UI Overlay Screens -->
+    <!-- 1. Main Menu -->
+    <div id="screen-main-menu" class="ui-screen menu-overlay">
+      <div class="menu-card animated-pop">
+        <div class="game-logo-wrapper">
+          <div class="logo-sub">3D PLATFORM ADVENTURE</div>
+          <h1 class="game-title">SUPER JUMP<br><span class="title-highlight">WORLD</span></h1>
+        </div>
+        <p class="menu-tagline">Jump, run, stomp enemies, and reach the golden goal!</p>
+        
+        <div class="menu-actions">
+          <button id="btn-start-game" class="btn-arcade btn-primary">START GAME 🚀</button>
+          <button id="btn-how-to-play" class="btn-arcade btn-secondary">CONTROLS 🎮</button>
+        </div>
+
+        <div class="sound-quick-toggle">
+          <button id="menu-sound-toggle" class="btn-text">Sound: <span id="sound-status-text">ON</span> 🔊</button>
+        </div>
+
+        <div class="menu-credits">Built with Three.js & Web Audio API</div>
+      </div>
+    </div>
+
+    <!-- 2. Controls / How to Play Modal -->
+    <div id="modal-controls" class="ui-screen menu-overlay hidden">
+      <div class="menu-card controls-card animated-pop">
+        <h2 class="card-heading">HOW TO PLAY</h2>
+        <div class="controls-grid">
+          <div class="control-row">
+            <div class="key-badge">A / D</div>
+            <div class="key-badge">◀ / ▶</div>
+            <div class="control-desc">Move Left & Right</div>
+          </div>
+          <div class="control-row">
+            <div class="key-badge key-space">SPACE</div>
+            <div class="key-badge">W / ▲</div>
+            <div class="control-desc">Jump (Hold longer for higher jump!)</div>
+          </div>
+          <div class="control-row">
+            <div class="key-badge">SHIFT</div>
+            <div class="control-desc">Sprint / Speed Boost</div>
+          </div>
+          <div class="control-row">
+            <div class="key-badge">P / ESC</div>
+            <div class="control-desc">Pause Game</div>
+          </div>
+          <div class="control-row">
+            <div class="key-badge">R</div>
+            <div class="control-desc">Quick Restart Level</div>
+          </div>
+        </div>
+
+        <div class="gameplay-tips">
+          <div class="tip-item">⭐ <strong>Stomp enemies</strong> from above to defeat them and bounce higher!</div>
+          <div class="tip-item">❓ <strong>Hit mystery blocks</strong> from below to uncover coins & Star Dash power-ups!</div>
+          <div class="tip-item">🚩 <strong>Activate checkpoints</strong> so you don't lose your progress.</div>
+        </div>
+
+        <button id="btn-close-controls" class="btn-arcade btn-primary">GOT IT! 👍</button>
+      </div>
+    </div>
+
+    <!-- 3. Pause Menu -->
+    <div id="screen-pause" class="ui-screen menu-overlay hidden">
+      <div class="menu-card animated-pop">
+        <h2 class="card-heading">PAUSED</h2>
+        <div class="menu-actions">
+          <button id="btn-resume" class="btn-arcade btn-primary">RESUME ▶</button>
+          <button id="btn-restart-paused" class="btn-arcade btn-secondary">RESTART LEVEL 🔄</button>
+          <button id="btn-main-menu-paused" class="btn-arcade btn-secondary">MAIN MENU 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Victory Screen -->
+    <div id="screen-victory" class="ui-screen menu-overlay hidden">
+      <div class="menu-card victory-card animated-pop">
+        <div class="victory-banner">🎉 COURSE CLEAR! 🎉</div>
+        <h2 class="victory-title">YOU DID IT!</h2>
+        
+        <div class="stats-summary">
+          <div class="stat-box">
+            <span class="stat-label">TIME BONUS</span>
+            <span id="victory-time-val" class="stat-val">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">COINS COLLECTED</span>
+            <span id="victory-coins-val" class="stat-val">0</span>
+          </div>
+          <div class="stat-box stat-highlight">
+            <span class="stat-label">TOTAL SCORE</span>
+            <span id="victory-score-val" class="stat-val">0</span>
+          </div>
+        </div>
+
+        <div class="menu-actions">
+          <button id="btn-victory-replay" class="btn-arcade btn-primary">PLAY AGAIN 🔄</button>
+          <button id="btn-victory-menu" class="btn-arcade btn-secondary">MAIN MENU 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Game Over Screen -->
+    <div id="screen-game-over" class="ui-screen menu-overlay hidden">
+      <div class="menu-card gameover-card animated-pop">
+        <h2 class="gameover-title">GAME OVER</h2>
+        <p class="gameover-sub">Don't give up! Try again to conquer Sunny Meadows!</p>
+
+        <div class="stats-summary">
+          <div class="stat-box">
+            <span class="stat-label">FINAL SCORE</span>
+            <span id="gameover-score-val" class="stat-val">000000</span>
+          </div>
+        </div>
+
+        <div class="menu-actions">
+          <button id="btn-gameover-restart" class="btn-arcade btn-primary">TRY AGAIN 🚀</button>
+          <button id="btn-gameover-menu" class="btn-arcade btn-secondary">MAIN MENU 🏠</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

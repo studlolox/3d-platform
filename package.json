@@ -1,0 +1,22 @@
+{
+  "name": "super-jump-world",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Super Jump World - 3D Platform Adventure in Three.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node tests/playwright_runner.js",
+    "test:playwright": "node tests/playwright_runner.js"
+  },
+  "dependencies": {
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "playwright-core": "^1.65.1",
+    "puppeteer-core": "^25.18.1",
+    "vite": "^6.2.0"
+  }
+}
