@@ -81,9 +81,19 @@ A high-quality, fully playable 3D platformer game inspired by classic Super Mari
    ```
    Open `http://localhost:5173` in your browser.
 
-4. Run Playwright end-to-end automated tests:
+4. Run automated test suites:
    ```bash
+   # Run full 37-assertion telemetry suite
    npm test
+
+   # Run isolated Playwright spec tests
+   npm run test:spec
+
+   # Run all tests and verify production build
+   npm run test:all
+
+   # Run Three.js canvas pixel & render budget inspector
+   npm run inspect:canvas
    ```
 
 5. Build for production:
