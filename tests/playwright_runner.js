@@ -410,6 +410,46 @@ async function runPlaywrightSuite() {
   assert(level1_3State.enemyCount > 0, `Canopy arboreal enemies populated (${level1_3State.enemyCount} enemies)`);
   assert(level1_3State.movingPlatCount >= 3, `High altitude moving platforms active (${level1_3State.movingPlatCount} platforms)`);
 
+  // 16. Multi-Level Progression to World 1-4 The Fortress Gate
+  console.log('\nSTAGE 16: Multi-Level Progression to World 1-4 The Fortress Gate');
+  await page.evaluate(() => {
+    window.__GAME__.player.reset({ x: 151.0, y: 7.5, z: 0 });
+    window.__GAME__.level.goal.reachGoal();
+  });
+  await page.waitForTimeout(300);
+
+  const nextBtnVisible1_3 = await page.locator('#btn-victory-next').isVisible();
+  assert(nextBtnVisible1_3, 'Next Level button visible after completing Level 1-3');
+
+  await page.locator('#btn-victory-next').click();
+  await page.waitForTimeout(400);
+
+  const level1_4State = await page.evaluate(() => ({
+    levelKey: window.__GAME__.gameState.levelKey,
+    world: window.__GAME__.gameState.currentWorld,
+    level: window.__GAME__.gameState.currentLevel,
+    levelName: window.__GAME__.level.currentLevelData?.name,
+    biome: window.__GAME__.level.currentLevelData?.theme?.biome,
+    hudWorldText: document.getElementById('hud-world-val')?.textContent,
+    enemyCount: window.__GAME__.level.enemies.length,
+    blockCount: window.__GAME__.level.blocks.length
+  }));
+
+  assert(level1_4State.levelKey === '1-4', `Game loaded Level 1-4 (active: ${level1_4State.levelKey})`);
+  assert(level1_4State.biome === 'fortress', `Fortress biome active with volcanic masonry and fiery lighting`);
+  assert(level1_4State.hudWorldText === '1 - 4', `Top HUD updated to display WORLD 1 - 4 (${level1_4State.hudWorldText})`);
+  assert(level1_4State.enemyCount > 0, `Fortress citadel guards populated (${level1_4State.enemyCount} enemies)`);
+
+  // Verify World 1 Grand Finale completion:
+  await page.evaluate(() => {
+    window.__GAME__.player.reset({ x: 152.0, y: 4.0, z: 0 });
+    window.__GAME__.level.goal.reachGoal();
+  });
+  await page.waitForTimeout(300);
+
+  const nextBtnFinalVisible = await page.locator('#btn-victory-next').isVisible();
+  assert(!nextBtnFinalVisible, 'Next Level button hides on completing World 1 Finale (no subsequent level)');
+
   // Summary
   console.log('\n==================================================================');
   console.log('                 PLAYWRIGHT TEST SUMMARY                          ');

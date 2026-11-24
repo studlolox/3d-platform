@@ -34,8 +34,12 @@ A high-quality, fully playable 3D platformer game inspired by classic Super Mari
     - High-altitude arboreal biome set against a golden-coral sunset sky with warm twilight haze.
     - Colossal ancient redwood tree trunks, massive leafy canopy crowns, and drifting sunset clouds.
     - Elevated precision platforming, swaying wooden stepping boughs, 3 distinct moving platform elevators over the void, and an elevated tree-summit Goal Arch.
+  - **World 1-4: The Fortress Gate (World 1 Grand Finale):**
+    - Volcanic fortress citadel biome with dark obsidian ramparts, fiery crimson lighting, flaming wall torches, and glowing molten lava pools.
+    - High-stakes timing gauntlets, vertical and diagonal lava elevators, and aggressive hopping citadel guards.
+    - Reaching the Fortress Goal Arch marks the triumph and completion of World 1!
   - **Victory Progression:**
-    - Dynamic "NEXT LEVEL 🚀" action seamlessly advances the player to the next stage with HUD level counter updates (`1 - 1`, `1 - 2`, `1 - 3`).
+    - Dynamic "NEXT LEVEL 🚀" action seamlessly advances the player across the levels (`1 - 1`, `1 - 2`, `1 - 3`, `1 - 4`).
 - **Arcade HUD & Menus:**
   - Main Menu, Controls Modal, Pause Menu, Victory Screen, and Game Over Screen.
   - Real-time HUD showing lives, coins, world, score, countdown timer, and power-up meter.

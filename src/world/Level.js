@@ -119,6 +119,18 @@ export class Level {
       canopyLeaves: new THREE.MeshLambertMaterial({ color: m.canopyLeaves || 0x388e3c }),
       leafOrange: new THREE.MeshLambertMaterial({ color: m.leafOrange || 0xf57c00 }),
       sunsetCloud: new THREE.MeshLambertMaterial({ color: m.sunsetCloud || 0xffecb3, transparent: true, opacity: 0.88 }),
+      fortressPillar: new THREE.MeshLambertMaterial({ color: m.fortressPillar || 0x2e2e2e }),
+      lava: new THREE.MeshLambertMaterial({
+        color: m.lava || 0xff3d00,
+        emissive: m.lava || 0xff3d00,
+        emissiveIntensity: 0.75
+      }),
+      torchFire: new THREE.MeshLambertMaterial({
+        color: m.torchFire || 0xffab00,
+        emissive: m.torchFire || 0xffab00,
+        emissiveIntensity: 0.85
+      }),
+      bannerRed: new THREE.MeshLambertMaterial({ color: m.bannerRed || 0xb71c1c }),
       flower1: new THREE.MeshBasicMaterial({ color: 0xffeb3b }),
       flower2: new THREE.MeshBasicMaterial({ color: 0xff4081 })
     };
@@ -131,6 +143,8 @@ export class Level {
       this.buildCavernScenery(scenery);
     } else if (biome === 'canopy') {
       this.buildCanopyScenery(scenery);
+    } else if (biome === 'fortress') {
+      this.buildFortressScenery(scenery);
     } else {
       this.buildMeadowScenery(scenery);
     }
@@ -300,6 +314,64 @@ export class Level {
 
       cloud.add(s1, s2, s3);
       this.sceneryGroup.add(cloud);
+    });
+  }
+
+  buildFortressScenery(scenery) {
+    // 1. Background fortress towers and battlements
+    const towers = scenery.towers || [];
+    towers.forEach(tw => {
+      const twGeo = new THREE.BoxGeometry(tw.w, tw.h, 3.0);
+      const mesh = new THREE.Mesh(twGeo, this.materials.fortressPillar);
+      mesh.position.set(tw.x, tw.y, tw.z);
+      this.sceneryGroup.add(mesh);
+
+      // Tower crenellations on top
+      const numCrenels = Math.floor(tw.w / 1.2);
+      for (let i = 0; i < numCrenels; i++) {
+        const cGeo = new THREE.BoxGeometry(0.6, 0.8, 3.1);
+        const crenel = new THREE.Mesh(cGeo, this.materials.fortressPillar);
+        crenel.position.set(tw.x - (tw.w / 2) + 0.4 + i * 1.2, tw.y + (tw.h / 2) + 0.4, tw.z);
+        this.sceneryGroup.add(crenel);
+      }
+    });
+
+    // 2. Flaming wall torches along castle pillars
+    const torches = scenery.torches || [];
+    torches.forEach(tc => {
+      const torchGroup = new THREE.Group();
+      torchGroup.position.set(tc.x, tc.y, tc.z);
+
+      const bracketGeo = new THREE.CylinderGeometry(0.06, 0.08, 0.4, 6);
+      const bracket = new THREE.Mesh(bracketGeo, this.materials.fortressPillar);
+      bracket.rotation.z = Math.PI / 6;
+      torchGroup.add(bracket);
+
+      const flameGeo = new THREE.OctahedronGeometry(0.2, 0);
+      flameGeo.scale(0.8, 1.4, 0.8);
+      const flame = new THREE.Mesh(flameGeo, this.materials.torchFire);
+      flame.position.set(0.12, 0.25, 0);
+      torchGroup.add(flame);
+
+      this.sceneryGroup.add(torchGroup);
+    });
+
+    // 3. Glowing molten lava pools in bottom abyss
+    const lavaPools = scenery.lavaPools || [];
+    lavaPools.forEach(lp => {
+      const lGeo = new THREE.BoxGeometry(lp.w, 1.5, lp.d || 8.0);
+      const lMesh = new THREE.Mesh(lGeo, this.materials.lava);
+      lMesh.position.set(lp.x, lp.y, lp.z || 0);
+      this.sceneryGroup.add(lMesh);
+    });
+
+    // 4. Crimson castle banners
+    const banners = scenery.banners || [];
+    banners.forEach(bn => {
+      const bGeo = new THREE.PlaneGeometry(1.2, 2.5);
+      const bMesh = new THREE.Mesh(bGeo, this.materials.bannerRed);
+      bMesh.position.set(bn.x, bn.y, bn.z);
+      this.sceneryGroup.add(bMesh);
     });
   }
 

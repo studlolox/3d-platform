@@ -431,4 +431,40 @@ test.describe('Super Jump World — Playwright Automated Suite', () => {
     expect(levelData.enemies).toBeGreaterThan(0);
     expect(levelData.movingPlatforms).toBeGreaterThanOrEqual(3);
   });
+
+  test('16. Multi-Level Progression to World 1-4 The Fortress Gate & Finale', async ({ page }) => {
+    await page.click('#btn-start-game');
+    await page.waitForTimeout(300);
+
+    // Direct load to 1-4
+    await page.evaluate(() => {
+      window.__GAME__.loadLevel('1-4');
+    });
+    await page.waitForTimeout(400);
+
+    const hudWorld = page.locator('#hud-world-val');
+    await expect(hudWorld).toHaveText('1 - 4');
+
+    const levelData = await page.evaluate(() => ({
+      key: window.__GAME__.gameState.levelKey,
+      name: window.__GAME__.level.currentLevelData?.name,
+      biome: window.__GAME__.level.currentLevelData?.theme?.biome,
+      enemies: window.__GAME__.level.enemies.length
+    }));
+
+    expect(levelData.key).toBe('1-4');
+    expect(levelData.name).toBe('The Fortress Gate');
+    expect(levelData.biome).toBe('fortress');
+    expect(levelData.enemies).toBeGreaterThan(0);
+
+    // Reach goal in 1-4 to verify World 1 completion
+    await page.evaluate(() => {
+      window.__GAME__.player.reset({ x: 152.0, y: 4.0, z: 0 });
+      window.__GAME__.level.goal.reachGoal();
+    });
+    await page.waitForTimeout(400);
+
+    const nextBtn = page.locator('#btn-victory-next');
+    await expect(nextBtn).toBeHidden();
+  });
 });
